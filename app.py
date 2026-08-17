@@ -20,12 +20,17 @@ def get_base64_image(image_path):
         return ""
 
 img_base64 = get_base64_image("background.jpg")
-bg_css = f"url('data:image/jpeg;base64,{img_base64}')" if img_base64 else "linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)"
 
-# Custom CSS to set the background image and change the primary button color to gold
+# Adding a dark semi-transparent overlay (rgba) on top of the background image to dim its intensity
+if img_base64:
+    bg_css = f"linear-gradient(rgba(10, 15, 30, 0.85), rgba(10, 15, 30, 0.85)), url('data:image/jpeg;base64,{img_base64}')"
+else:
+    bg_css = "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+
+# Custom CSS to set the background, overlay, and change button colors to gold
 st.markdown(f"""
 <style>
-    /* Background image for the main app container */
+    /* Background image with a dark overlay to tone down brightness */
     .stApp {{
         background-image: {bg_css};
         background-size: cover;

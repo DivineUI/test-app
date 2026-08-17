@@ -4,7 +4,7 @@ import numpy as np
 import base64
 import random
 from datetime import datetime
-from openai import OpenAI
+from groq import Groq
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -70,7 +70,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# Load trained model, scaler, and OpenAI client
+# Load trained model, scaler, and Groq client
 @st.cache_resource
 def load_assets():
     model = joblib.load('model.pkl')
@@ -79,8 +79,8 @@ def load_assets():
 
 model, scaler = load_assets()
 
-api_key = st.secrets["OPENAI_API_KEY"]
-client = OpenAI(api_key=api_key)
+api_key = st.secrets["GROQ_API_KEY"]
+client = Groq(api_key=api_key)
 
 # Generate a unique reference ID for the auditing trail if not already present
 if 'ref_id' not in st.session_state:
@@ -167,7 +167,7 @@ def create_pdf_report(session_ref, history_logs):
     buffer.seek(0)
     return buffer
 
-# Explanation function using OpenAI gpt-4o-mini
+# Explanation function using Groq and the specified model
 def generate_explanation(decision, income, credit_score, loan_amount, prior_default):
     prompt = f"""
 You are a lending analyst writing a brief internal note for a loan officer, summarizing why a model reached a loan recommendation.
@@ -183,7 +183,7 @@ Base your explanation only on the information given above. Do not invent or assu
 This is a recommendation to support the officer's decision, not a final or automatic decision.
 """
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content

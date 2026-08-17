@@ -1,6 +1,7 @@
 import streamlit as st
 import joblib
 import numpy as np
+import base64
 from groq import Groq
 
 # Page configuration for a professional look
@@ -10,29 +11,40 @@ st.set_page_config(
     layout="wide"
 )
 
+# Helper function to convert local image to base64 for reliable CSS injection
+def get_base64_image(image_path):
+    try:
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except Exception:
+        return ""
+
+img_base64 = get_base64_image("background.jpg")
+bg_css = f"url('data:image/jpeg;base64,{img_base64}')" if img_base64 else "linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)"
+
 # Custom CSS to set the background image and change the primary button color to gold
-st.markdown("""
+st.markdown(f"""
 <style>
     /* Background image for the main app container */
-    .stApp {
-        background-image: url("https://raw.githubusercontent.com/divineui/FairLoan/main/background.png");
+    .stApp {{
+        background-image: {bg_css};
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
-    }
+    }}
     
     /* Change primary buttons (like 'Evaluate Loan Application') to gold */
-    div.stButton > button:first-child {
+    div.stButton > button:first-child {{
         background-color: #D4AF37 !important;
         color: #000000 !important;
         font-weight: bold;
         border: none !important;
-    }
+    }}
     
-    div.stButton > button:first-child:hover {
+    div.stButton > button:first-child:hover {{
         background-color: #C5A028 !important;
         color: #000000 !important;
-    }
+    }}
 </style>
 """, unsafe_allow_html=True)
 

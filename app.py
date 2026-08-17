@@ -340,6 +340,5 @@ if evaluate_btn:
         }
         if not st.session_state['history'] or st.session_state['history'][-1] != current_eval:
             st.session_state['history'].append(current_eval)
-            st.rerun()
 else:
     st.info("👈 Adjust the applicant details in the sidebar and click **Evaluate Loan Application** to view the model's decision support breakdown.")

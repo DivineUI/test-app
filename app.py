@@ -3,6 +3,7 @@ import joblib
 import numpy as np
 import base64
 import random
+from datetime import datetime
 from groq import Groq
 
 # Page configuration for a professional look
@@ -80,6 +81,10 @@ client = Groq(api_key=api_key)
 if 'ref_id' not in st.session_state:
     st.session_state['ref_id'] = f"FL-{random.randint(100000, 999999)}"
 
+# Initialize session history log if not present
+if 'history' not in st.session_state:
+    st.session_state['history'] = []
+
 # Explanation function
 def generate_explanation(decision, income, credit_score, loan_amount, prior_default):
     prompt = f"""
@@ -151,6 +156,31 @@ with st.sidebar:
 
     st.divider()
     evaluate_btn = st.button("🚀 Evaluate Loan Application", type="primary", use_container_width=True)
+
+    # Session Log & Report Download Section in Sidebar
+    if st.session_state['history']:
+        st.divider()
+        st.subheader("📑 Session Audit Log")
+        st.write(f"Evaluations logged: **{len(st.session_state['history'])}**")
+        
+        # Build text report for downloading
+        report_text = f"FAIRLOAN - CREDIT RISK EVALUATION REPORT\nSession Reference: {st.session_state['ref_id']}\nGenerated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "="*50 + "\n\n"
+        for idx, item in enumerate(st.session_state['history'], 1):
+            report_text += f"Evaluation #{idx} [{item['timestamp']}]\n"
+            report_text += f"- Income: GHS {item['income']:,.2f}\n"
+            report_text += f"- Loan Amount: GHS {item['loan_amount']:,.2f}\n"
+            report_text += f"- Credit Score: {item['credit_score']}\n"
+            report_text += f"- Decision / Status: {item['decision']}\n"
+            report_text += f"- Analyst Briefing Note:\n{item['explanation']}\n"
+            report_text += "-"*50 + "\n\n"
+            
+        st.download_button(
+            label="📥 Download Session Report",
+            data=report_text,
+            file_name=f"FairLoan_Audit_Report_{st.session_state['ref_id']}.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
 
 # Main Content Area for Results
 if evaluate_btn:
@@ -232,5 +262,18 @@ if evaluate_btn:
 
         st.markdown("#### 📝 Internal Analyst Briefing Note")
         st.info(explanation)
+        
+        # Automatically append this evaluation to the session audit log history
+        # (Prevent duplicate sequential logging of the exact same click state)
+        current_eval = {
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "income": person_income,
+            "loan_amount": loan_amnt,
+            "credit_score": credit_score,
+            "decision": decision,
+            "explanation": explanation
+        }
+        if not st.session_state['history'] or st.session_state['history'][-1] != current_eval:
+            st.session_state['history'].append(current_eval)
 else:
     st.info("👈 Adjust the applicant details in the sidebar and click **Evaluate Loan Application** to view the model's decision support breakdown.")

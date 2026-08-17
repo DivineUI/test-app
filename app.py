@@ -2,6 +2,7 @@ import streamlit as st
 import joblib
 import numpy as np
 import base64
+import random
 from groq import Groq
 
 # Page configuration for a professional look
@@ -21,16 +22,15 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("background.jpg")
 
-# Adding a dark semi-transparent overlay (rgba) on top of the background image to dim its intensity
+# Adding a dark semi-transparent overlay on top of the background image to dim its intensity
 if img_base64:
-    bg_css = f"linear-gradient(rgba(10, 15, 30, 0.82), rgba(10, 15, 30, 0.82)), url('data:image/jpeg;base64,{img_base64}')"
+    bg_css = f"linear-gradient(rgba(10, 15, 30, 0.85), rgba(10, 15, 30, 0.85)), url('data:image/jpeg;base64,{img_base64}')"
 else:
     bg_css = "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
 
-# Custom CSS for background, gold buttons, custom cards, and clean typography
+# Custom CSS for styling, banking-grade cards, and gold buttons
 st.markdown(f"""
 <style>
-    /* Background image with a dark overlay to tone down brightness */
     .stApp {{
         background-image: {bg_css};
         background-size: cover;
@@ -38,7 +38,6 @@ st.markdown(f"""
         background-repeat: no-repeat;
     }}
     
-    /* Change primary buttons to gold */
     div.stButton > button:first-child {{
         background-color: #D4AF37 !important;
         color: #000000 !important;
@@ -53,14 +52,14 @@ st.markdown(f"""
         color: #000000 !important;
         box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
     }}
-
-    /* Custom styling for cards/containers */
-    .metric-card {{
-        background-color: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+    
+    .banking-card {{
+        background-color: rgba(30, 41, 59, 0.75);
+        border: 1px solid rgba(212, 175, 55, 0.3);
         padding: 20px;
-        border-radius: 10px;
+        border-radius: 8px;
         backdrop-filter: blur(10px);
+        margin-bottom: 15px;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -76,6 +75,10 @@ model, scaler = load_assets()
 
 api_key = st.secrets["GROQ_API_KEY"]
 client = Groq(api_key=api_key)
+
+# Generate a unique reference ID for the auditing trail if not already present
+if 'ref_id' not in st.session_state:
+    st.session_state['ref_id'] = f"FL-{random.randint(100000, 999999)}"
 
 # Explanation function
 def generate_explanation(decision, income, credit_score, loan_amount, prior_default):
@@ -103,52 +106,55 @@ st.title("🏦 FairLoan — Loan Officer Decision Support")
 st.markdown("Use this workspace to evaluate applicant profiles, review automated model recommendations, and read quick AI-generated summary notes.")
 st.divider()
 
-# Sidebar Layout for Inputs
+# Sidebar Layout with Categorized Sections (Mimicking a Core Banking Portal)
 with st.sidebar:
-    st.header("📋 Applicant Information")
+    st.markdown("👤 **Logged in:** Loan Officer (Credit Risk)")
+    st.markdown(f"🏷️ **Session Ref:** `{st.session_state['ref_id']}`")
+    st.divider()
     
-    person_age = st.number_input("Age", min_value=18, max_value=100, value=25)
+    st.header("📋 Applicant Profile")
 
-    person_education_input = st.selectbox(
-        "Education Level", 
-        ["Not educated", "Primary", "High School", "Associate", "Bachelor", "Master", "Doctorate"]
-    )
-    education_fallback = {"Not educated": "High School", "Primary": "High School"}
-    person_education = education_fallback.get(person_education_input, person_education_input)
+    # Category 1: Demographics
+    with st.expander("👤 Personal & Demographics", expanded=True):
+        person_age = st.number_input("Age:", min_value=18, max_value=100, value=25)
+        person_education_input = st.selectbox("Education Level:", ["Not educated", "Primary", "High School", "Associate", "Bachelor", "Master", "Doctorate"])
+        education_fallback = {"Not educated": "High School", "Primary": "High School"}
+        person_education = education_fallback.get(person_education_input, person_education_input)
+        home_ownership = st.selectbox("Home Ownership:", ["MORTGAGE", "OTHER", "OWN", "RENT"])
 
-    person_income = st.number_input("Annual Income (GHS)", min_value=0, value=50000, step=1000)
-    person_emp_exp = st.number_input("Employment Experience (Years)", min_value=0, max_value=60, value=5)
-    
-    loan_amnt = st.number_input("Loan Amount Requested (GHS)", min_value=0, value=10000, step=500)
-    loan_int_rate = st.number_input("Loan Interest Rate (%)", min_value=0.0, max_value=100.0, value=10.0, step=0.1)
-    
-    cb_person_cred_hist_length = st.number_input("Credit History Length (Years)", min_value=0, value=5)
-    credit_score = st.number_input("Credit Score", min_value=300, max_value=850, value=650)
+    # Category 2: Financials
+    with st.expander("💰 Financials & Employment", expanded=False):
+        person_income = st.number_input("Annual Income (GHS):", min_value=0, value=50000, step=1000)
+        person_emp_exp = st.number_input("Years of Employment Experience:", min_value=0, max_value=60, value=5)
 
-    home_ownership = st.selectbox(
-        "Home Ownership", 
-        ["MORTGAGE", "OTHER", "OWN", "RENT"]
-    )
-    
-    intent_mapping = {
-        "Debt Consolidation": "DEBTCONSOLIDATION",
-        "Education": "EDUCATION",
-        "Home Improvement": "HOMEIMPROVEMENT",
-        "Medical": "MEDICAL",
-        "Personal": "PERSONAL",
-        "Venture": "VENTURE"
-    }
-    
-    selected_intent_label = st.selectbox("Loan Purpose", list(intent_mapping.keys()))
-    loan_intent = intent_mapping[selected_intent_label]
+    # Category 3: Loan Request Details
+    with st.expander("📝 Loan Parameters", expanded=False):
+        loan_amnt = st.number_input("Loan Amount Requested (GHS):", min_value=0, value=10000, step=500)
+        loan_int_rate = st.number_input("Loan Interest Rate (%):", min_value=0.0, max_value=100.0, value=10.0, step=0.1)
+        
+        intent_mapping = {
+            "Debt Consolidation": "DEBTCONSOLIDATION",
+            "Education": "EDUCATION",
+            "Home Improvement": "HOMEIMPROVEMENT",
+            "Medical": "MEDICAL",
+            "Personal": "PERSONAL",
+            "Venture": "VENTURE"
+        }
+        selected_intent_label = st.selectbox("Loan Purpose:", list(intent_mapping.keys()))
+        loan_intent = intent_mapping[selected_intent_label]
 
-    prior_default = st.selectbox("Prior Loan Default on File", ["No", "Yes"])
-    
+    # Category 4: Credit Risk History
+    with st.expander("🛡️ Credit & Risk History", expanded=False):
+        cb_person_cred_hist_length = st.number_input("Credit History Length (years):", min_value=0, value=5)
+        credit_score = st.number_input("Credit Score:", min_value=300, max_value=850, value=650)
+        prior_default = st.selectbox("Prior Loan Default on File:", ["No", "Yes"])
+
     st.divider()
     evaluate_btn = st.button("🚀 Evaluate Loan Application", type="primary", use_container_width=True)
 
 # Main Content Area for Results
 if evaluate_btn:
+    # Encoding logic
     education_order = {'High School': 0, 'Associate': 1, 'Bachelor': 2, 'Master': 3, 'Doctorate': 4}
     person_education_encoded = education_order[person_education]
 
@@ -192,7 +198,7 @@ if evaluate_btn:
     prediction = model.predict(features_scaled)[0]
     probability = model.predict_proba(features_scaled)[0][1]
 
-    st.subheader("Evaluation Results")
+    st.subheader("Evaluation Results & Risk Tier")
     
     col1, col2 = st.columns([1, 2])
 
@@ -200,18 +206,18 @@ if evaluate_btn:
         with st.container():
             if prior_default == "Yes":
                 decision = "Flagged for Manual Review"
-                st.warning(f"**Status:**\n\n{decision}")
-                st.caption("Requires manual review due to a prior loan default on file.")
+                st.error(f"🔴 **Tier 3 Risk: Flagged**")
+                st.warning("Requires manual review due to a prior loan default on file. The model has not generated an automated approval.")
             else:
                 if prediction == 1:
                     decision = "Approved"
-                    st.success(f"**Recommendation:**\n\nApprove")
+                    st.success(f"🟢 **Tier 1 Risk: Low Risk**\n\nModel Recommendation: **Approve**")
                     st.metric(label="Model Confidence", value=f"{probability:.0%}")
                     st.progress(float(probability), text="Approval Strength")
                 else:
                     decision = "Not Approved"
-                    st.error(f"**Recommendation:**\n\nDo Not Approve")
-                    st.metric(label="Risk / Rejection Confidence", value=f"{(1-probability):.0%}")
+                    st.error(f"🔴 **Tier 2 Risk: Elevated Risk**\n\nModel Recommendation: **Do Not Approve**")
+                    st.metric(label="Rejection Confidence", value=f"{(1-probability):.0%}")
                     st.progress(float(1 - probability), text="Risk Index")
 
     with col2:
@@ -224,7 +230,7 @@ if evaluate_btn:
                 prior_default=(prior_default == "Yes")
             )
 
-        st.markdown("#### 📝 Internal Analyst Note")
+        st.markdown("#### 📝 Internal Analyst Briefing Note")
         st.info(explanation)
 else:
     st.info("👈 Adjust the applicant details in the sidebar and click **Evaluate Loan Application** to view the model's decision support breakdown.")

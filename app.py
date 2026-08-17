@@ -23,11 +23,11 @@ img_base64 = get_base64_image("background.jpg")
 
 # Adding a dark semi-transparent overlay (rgba) on top of the background image to dim its intensity
 if img_base64:
-    bg_css = f"linear-gradient(rgba(10, 15, 30, 0.85), rgba(10, 15, 30, 0.85)), url('data:image/jpeg;base64,{img_base64}')"
+    bg_css = f"linear-gradient(rgba(10, 15, 30, 0.82), rgba(10, 15, 30, 0.82)), url('data:image/jpeg;base64,{img_base64}')"
 else:
     bg_css = "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
 
-# Custom CSS to set the background, overlay, and change button colors to gold
+# Custom CSS for background, gold buttons, custom cards, and clean typography
 st.markdown(f"""
 <style>
     /* Background image with a dark overlay to tone down brightness */
@@ -38,17 +38,29 @@ st.markdown(f"""
         background-repeat: no-repeat;
     }}
     
-    /* Change primary buttons (like 'Evaluate Loan Application') to gold */
+    /* Change primary buttons to gold */
     div.stButton > button:first-child {{
         background-color: #D4AF37 !important;
         color: #000000 !important;
         font-weight: bold;
         border: none !important;
+        border-radius: 6px;
+        transition: 0.3s;
     }}
     
     div.stButton > button:first-child:hover {{
         background-color: #C5A028 !important;
         color: #000000 !important;
+        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+    }}
+
+    /* Custom styling for cards/containers */
+    .metric-card {{
+        background-color: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -91,7 +103,7 @@ st.title("🏦 FairLoan — Loan Officer Decision Support")
 st.markdown("Use this workspace to evaluate applicant profiles, review automated model recommendations, and read quick AI-generated summary notes.")
 st.divider()
 
-# Sidebar Layout for Inputs (Mimics a dashboard control panel)
+# Sidebar Layout for Inputs
 with st.sidebar:
     st.header("📋 Applicant Information")
     
@@ -118,7 +130,6 @@ with st.sidebar:
         ["MORTGAGE", "OTHER", "OWN", "RENT"]
     )
     
-    # Mapping raw loan intents to natural, human-readable labels
     intent_mapping = {
         "Debt Consolidation": "DEBTCONSOLIDATION",
         "Education": "EDUCATION",
@@ -138,7 +149,6 @@ with st.sidebar:
 
 # Main Content Area for Results
 if evaluate_btn:
-    # Encoding logic
     education_order = {'High School': 0, 'Associate': 1, 'Bachelor': 2, 'Master': 3, 'Doctorate': 4}
     person_education_encoded = education_order[person_education]
 
@@ -187,19 +197,22 @@ if evaluate_btn:
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        if prior_default == "Yes":
-            decision = "Flagged for Manual Review"
-            st.warning(f"**Status:**\n\n{decision}")
-            st.caption("Requires manual review due to a prior loan default on file.")
-        else:
-            if prediction == 1:
-                decision = "Approved"
-                st.success(f"**Recommendation:**\n\nApprove")
-                st.metric(label="Model Confidence", value=f"{probability:.0%}")
+        with st.container():
+            if prior_default == "Yes":
+                decision = "Flagged for Manual Review"
+                st.warning(f"**Status:**\n\n{decision}")
+                st.caption("Requires manual review due to a prior loan default on file.")
             else:
-                decision = "Not Approved"
-                st.error(f"**Recommendation:**\n\nDo Not Approve")
-                st.metric(label="Model Confidence", value=f"{(1-probability):.0%}")
+                if prediction == 1:
+                    decision = "Approved"
+                    st.success(f"**Recommendation:**\n\nApprove")
+                    st.metric(label="Model Confidence", value=f"{probability:.0%}")
+                    st.progress(float(probability), text="Approval Strength")
+                else:
+                    decision = "Not Approved"
+                    st.error(f"**Recommendation:**\n\nDo Not Approve")
+                    st.metric(label="Risk / Rejection Confidence", value=f"{(1-probability):.0%}")
+                    st.progress(float(1 - probability), text="Risk Index")
 
     with col2:
         with st.spinner("Synthesizing analyst briefing note..."):

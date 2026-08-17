@@ -183,7 +183,7 @@ Base your explanation only on the information given above. Do not invent or assu
 This is a recommendation to support the officer's decision, not a final or automatic decision.
 """
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",  # Updated to active Groq model
+        model="llama-3.3-70b-versatile",  # Updated active Groq model
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content

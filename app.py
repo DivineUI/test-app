@@ -157,14 +157,14 @@ with st.sidebar:
     st.divider()
     evaluate_btn = st.button("🚀 Evaluate Loan Application", type="primary", use_container_width=True)
 
-    # Session Log & Report Download Section in Sidebar
+    # Session Log & Report Download Section in Sidebar (Always shown if history exists)
+    st.divider()
+    st.subheader("📑 Session Audit Log")
+    st.write(f"Evaluations logged: **{len(st.session_state['history'])}**")
+    
+    # Build text report for downloading
+    report_text = f"FAIRLOAN - CREDIT RISK EVALUATION REPORT\nSession Reference: {st.session_state['ref_id']}\nGenerated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "="*50 + "\n\n"
     if st.session_state['history']:
-        st.divider()
-        st.subheader("📑 Session Audit Log")
-        st.write(f"Evaluations logged: **{len(st.session_state['history'])}**")
-        
-        # Build text report for downloading
-        report_text = f"FAIRLOAN - CREDIT RISK EVALUATION REPORT\nSession Reference: {st.session_state['ref_id']}\nGenerated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "="*50 + "\n\n"
         for idx, item in enumerate(st.session_state['history'], 1):
             report_text += f"Evaluation #{idx} [{item['timestamp']}]\n"
             report_text += f"- Income: GHS {item['income']:,.2f}\n"
@@ -173,14 +173,16 @@ with st.sidebar:
             report_text += f"- Decision / Status: {item['decision']}\n"
             report_text += f"- Analyst Briefing Note:\n{item['explanation']}\n"
             report_text += "-"*50 + "\n\n"
-            
-        st.download_button(
-            label="📥 Download Session Report",
-            data=report_text,
-            file_name=f"FairLoan_Audit_Report_{st.session_state['ref_id']}.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
+    else:
+        report_text += "No loan evaluations have been performed yet in this session.\n"
+        
+    st.download_button(
+        label="📥 Download Session Report",
+        data=report_text,
+        file_name=f"FairLoan_Audit_Report_{st.session_state['ref_id']}.txt",
+        mime="text/plain",
+        use_container_width=True
+    )
 
 # Main Content Area for Results
 if evaluate_btn:
@@ -274,5 +276,6 @@ if evaluate_btn:
         }
         if not st.session_state['history'] or st.session_state['history'][-1] != current_eval:
             st.session_state['history'].append(current_eval)
+            st.rerun()
 else:
     st.info("👈 Adjust the applicant details in the sidebar and click **Evaluate Loan Application** to view the model's decision support breakdown.")

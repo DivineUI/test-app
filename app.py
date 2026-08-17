@@ -183,7 +183,7 @@ Base your explanation only on the information given above. Do not invent or assu
 This is a recommendation to support the officer's decision, not a final or automatic decision.
 """
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
@@ -195,7 +195,7 @@ st.divider()
 
 # Sidebar Layout with Categorized Sections
 with st.sidebar:
-    st.markdown(f" **Session Ref:** `{st.session_state['ref_id']}`")
+    st.markdown(f"**Session Ref:** `{st.session_state['ref_id']}`")
     st.divider()
     
     st.header("📋 Applicant Profile")

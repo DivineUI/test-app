@@ -10,6 +10,32 @@ st.set_page_config(
     layout="wide"
 )
 
+# Custom CSS to set the background image and change the primary button color to gold
+st.markdown("""
+<style>
+    /* Background image for the main app container */
+    .stApp {
+        background-image: url("https://raw.githubusercontent.com/divineui/FairLoan/main/background.png");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    
+    /* Change primary buttons (like 'Evaluate Loan Application') to gold */
+    div.stButton > button:first-child {
+        background-color: #D4AF37 !important;
+        color: #000000 !important;
+        font-weight: bold;
+        border: none !important;
+    }
+    
+    div.stButton > button:first-child:hover {
+        background-color: #C5A028 !important;
+        color: #000000 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Load trained model, scaler, and Groq client
 @st.cache_resource
 def load_assets():

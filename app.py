@@ -30,7 +30,7 @@ img_base64 = get_base64_image("background.jpg")
 
 # Adding a dark semi-transparent overlay on top of the background image to dim its intensity
 if img_base64:
-    bg_css = f"linear-gradient(rgba(10, 15, 30, 0.85), rgba(10, 15, 30, 0.85)), url('data:image/jpeg;base64,{img_base64}')"
+    bg_css = f"linear-gradient(rgba(10, 15, 30, 0.55), rgba(10, 15, 30, 0.55)), url('data:image/jpeg;base64,{img_base64}')"
 else:
     bg_css = "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
 
@@ -66,6 +66,10 @@ st.markdown(f"""
         border-radius: 8px;
         backdrop-filter: blur(10px);
         margin-bottom: 15px;
+    }}
+
+    .stApp, .stApp p, .stApp label, .stMarkdown {{
+        color: #f1f5f9 !important;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -188,6 +192,30 @@ This is a recommendation to support the officer's decision, not a final or autom
     )
     return response.choices[0].message.content
 
+# Function to flag cases where the model's prediction may not be reliable —
+# either because the model itself is uncertain, or because the applicant's
+# inputs fall far outside the range of data the model was trained on.
+def check_reliability(probability, age, income, loan_amount, emp_exp, cred_hist_length):
+    reasons = []
+
+    # Low-confidence check: prediction is close to the 50/50 boundary
+    if 0.40 <= probability <= 0.60:
+        reasons.append("The model's confidence in this prediction is low (close to a 50/50 split).")
+
+    # Outlier / logical-consistency checks based on realistic bounds
+    if income > 1_000_000:
+        reasons.append("Applicant income is far higher than typical values in the training data.")
+    if loan_amount > 100_000:
+        reasons.append("Requested loan amount is far higher than typical values in the training data.")
+    if emp_exp > (age - 18):
+        reasons.append("Employment experience is inconsistent with applicant age.")
+    if cred_hist_length > (age - 18):
+        reasons.append("Credit history length is inconsistent with applicant age.")
+    if age > 100:
+        reasons.append("Applicant age is unusually high relative to the training data.")
+
+    return reasons
+
 # App Header
 st.title("🏦 FairLoan — Loan Officer Decision Support")
 st.markdown("Use this workspace to evaluate applicant profiles, review automated model recommendations, and read quick AI-generated summary notes.")
@@ -295,7 +323,20 @@ if evaluate_btn:
     probability = model.predict_proba(features_scaled)[0][1]
 
     st.subheader("Evaluation Results & Risk Tier")
-    
+
+    with st.expander("ℹ️ What do these risk tiers mean?"):
+        st.markdown("""
+        - **🟢 Tier 1 — Low Risk:** Model recommends approval based on applicant profile.
+        - **🔴 Tier 2 — Elevated Risk:** Model recommends against approval; profile shows risk factors.
+        - **🟡 Tier — Review Recommended:** The model's prediction may not be reliable for this specific applicant (see reasons below). A loan officer should review manually rather than relying on the automated recommendation alone.
+        - **🔴 Tier 3 — Flagged for Manual Review:** Applicant has a prior loan default on file. The model does not generate an automated recommendation for these cases — a human loan officer must review them directly.
+        """)
+
+    # Check whether this prediction should be trusted at face value
+    reliability_flags = check_reliability(
+        probability, person_age, person_income, loan_amnt, person_emp_exp, cb_person_cred_hist_length
+    )
+
     col1, col2 = st.columns([1, 2])
 
     with col1:
@@ -304,6 +345,12 @@ if evaluate_btn:
                 decision = "Flagged for Manual Review"
                 st.error(f"🔴 **Tier 3 Risk: Flagged**")
                 st.warning("Requires manual review due to a prior loan default on file. The model has not generated an automated approval.")
+            elif reliability_flags:
+                decision = "Review Recommended (Low Confidence / Outlier Inputs)"
+                st.warning(f"🟡 **Tier: Review Recommended**\n\nThe model's automated recommendation may not be reliable for this applicant.")
+                for reason in reliability_flags:
+                    st.write(f"- {reason}")
+                st.caption(f"For reference, the model's raw output leaned toward: {'Approve' if prediction == 1 else 'Do Not Approve'} ({probability:.0%} confidence)")
             else:
                 if prediction == 1:
                     decision = "Approved"

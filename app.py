@@ -167,7 +167,7 @@ def create_pdf_report(session_ref, history_logs):
     buffer.seek(0)
     return buffer
 
-# Explanation function using Groq and the specified model
+# Explanation function using Groq's active model
 def generate_explanation(decision, income, credit_score, loan_amount, prior_default):
     prompt = f"""
 You are a lending analyst writing a brief internal note for a loan officer, summarizing why a model reached a loan recommendation.
@@ -183,7 +183,7 @@ Base your explanation only on the information given above. Do not invent or assu
 This is a recommendation to support the officer's decision, not a final or automatic decision.
 """
     response = client.chat.completions.create(
-        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content

@@ -264,7 +264,6 @@ if evaluate_btn:
         st.info(explanation)
         
         # Automatically append this evaluation to the session audit log history
-        # (Prevent duplicate sequential logging of the exact same click state)
         current_eval = {
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "income": person_income,

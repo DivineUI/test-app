@@ -30,7 +30,7 @@ img_base64 = get_base64_image("background.jpg")
 
 # Adding a dark semi-transparent overlay on top of the background image to dim its intensity
 if img_base64:
-    bg_css = f"linear-gradient(rgba(10, 15, 30, 0.55), rgba(10, 15, 30, 0.55)), url('data:image/jpeg;base64,{img_base64}')"
+    bg_css = f"linear-gradient(rgba(10, 15, 30, 0.70), rgba(10, 15, 30, 0.70)), url('data:image/jpeg;base64,{img_base64}')"
 else:
     bg_css = "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
 
@@ -327,9 +327,9 @@ if evaluate_btn:
     with st.expander("ℹ️ What do these risk tiers mean?"):
         st.markdown("""
         - **🟢 Tier 1 — Low Risk:** Model recommends approval based on applicant profile.
-        - **🔴 Tier 2 — Elevated Risk:** Model recommends against approval; profile shows risk factors.
-        - **🟡 Tier — Review Recommended:** The model's prediction may not be reliable for this specific applicant (see reasons below). A loan officer should review manually rather than relying on the automated recommendation alone.
-        - **🔴 Tier 3 — Flagged for Manual Review:** Applicant has a prior loan default on file. The model does not generate an automated recommendation for these cases — a human loan officer must review them directly.
+        - **🔴 Tier 2 — Elevated Risk:** Model recommends against approval. This includes applicants with a prior default whose profile would have been rejected regardless — the default doesn't change the outcome.
+        - **🟡 Tier 3 — Flagged for Manual Review:** Applicant has a prior loan default on file, but their profile would otherwise have been approved. The model does not generate an automated recommendation for these cases — a human loan officer must review them directly.
+        - **🔵 Tier 4 — Review Recommended:** The model's confidence is low, or one or more inputs fall far outside the range of the training data. A loan officer should review manually rather than relying on the automated recommendation alone.
         """)
 
     # Check whether this prediction should be trusted at face value
@@ -341,13 +341,21 @@ if evaluate_btn:
 
     with col1:
         with st.container():
-            if prior_default == "Yes":
+            if prior_default == "Yes" and prediction == 0:
+                # Would have been rejected anyway — the default doesn't change the outcome
+                decision = "Not Approved"
+                st.error(f"🔴 **Tier 2 Risk: Elevated Risk**\n\nModel Recommendation: **Do Not Approve**")
+                st.write("Applicant also has a prior loan default on file, but the profile would have been rejected regardless.")
+                st.metric(label="Rejection Confidence", value=f"{(1-probability):.0%}")
+                st.progress(float(1 - probability), text="Risk Index")
+            elif prior_default == "Yes" and prediction == 1:
+                # Would otherwise have been approved — flag for manual review instead of auto-approving
                 decision = "Flagged for Manual Review"
-                st.error(f"🔴 **Tier 3 Risk: Flagged**")
-                st.warning("Requires manual review due to a prior loan default on file. The model has not generated an automated approval.")
+                st.warning(f"🟡 **Tier 3 Risk: Flagged for Manual Review**")
+                st.write("Applicant's profile would otherwise have been approved, but has a prior loan default on file. The model has not generated an automated approval — a loan officer must review this case directly.")
             elif reliability_flags:
                 decision = "Review Recommended (Low Confidence / Outlier Inputs)"
-                st.warning(f"🟡 **Tier: Review Recommended**\n\nThe model's automated recommendation may not be reliable for this applicant.")
+                st.info(f"🔵 **Tier 4 Risk: Review Recommended**\n\nThe model's automated recommendation may not be reliable for this applicant.")
                 for reason in reliability_flags:
                     st.write(f"- {reason}")
                 st.caption(f"For reference, the model's raw output leaned toward: {'Approve' if prediction == 1 else 'Do Not Approve'} ({probability:.0%} confidence)")

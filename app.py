@@ -195,8 +195,7 @@ st.divider()
 
 # Sidebar Layout with Categorized Sections
 with st.sidebar:
-    st.markdown("👤 **Logged in:** Loan Officer (Credit Risk)")
-    st.markdown(f"🏷️ **Session Ref:** `{st.session_state['ref_id']}`")
+    st.markdown(f" **Session Ref:** `{st.session_state['ref_id']}`")
     st.divider()
     
     st.header("📋 Applicant Profile")
@@ -237,14 +236,13 @@ with st.sidebar:
 
     # Session Log & PDF Report Download Section in Sidebar
     st.divider()
-    st.subheader("📑 Session Audit Log")
     st.write(f"Evaluations logged: **{len(st.session_state['history'])}**")
     
     # Generate PDF binary for download
     pdf_buffer = create_pdf_report(st.session_state['ref_id'], st.session_state['history'])
         
     st.download_button(
-        label="📥 Download Session Report (PDF)",
+        label="Download Session Report (PDF)",
         data=pdf_buffer,
         file_name=f"FairLoan_Audit_Report_{st.session_state['ref_id']}.pdf",
         mime="application/pdf",
